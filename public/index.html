@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SDLM Miao — Accession Register & OPAC</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header>
+  <div>
+    <h1>Sub Divisional Library, Miao</h1>
+    <p>Accession Register & OPAC — Version 1</p>
+  </div>
+  <span id="status" class="status">Checking database…</span>
+</header>
+
+<main>
+  <section class="hero">
+    <h2>Online Public Access Catalogue</h2>
+    <p>Search books by title, ISBN, DDC number, or subject.</p>
+    <form id="searchForm">
+      <input id="search" autocomplete="off" placeholder="Search catalogue…" required>
+      <button>Search</button>
+    </form>
+  </section>
+
+  <section>
+    <div id="results"></div>
+  </section>
+</main>
+
+<footer>SDLM Miao · Accession Register Project</footer>
+<script src="/app.js"></script>
+</body>
+</html>
