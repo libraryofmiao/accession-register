@@ -11,9 +11,14 @@ const accessionDateInput = document.getElementById("accessionDate");
 const refreshAccessionButton = document.getElementById("refreshAccession");
 const contributors = document.getElementById("contributors");
 const addContributor = document.getElementById("addContributor");
+const sourceSelect = document.getElementById("source");
+const rrrlfSchemeWrap = document.getElementById("rrrlfSchemeWrap");
+const rrrlfSchemeSelect = document.getElementById("rrrlfScheme");
 
 let authorCount = 1;
 let contributorCount = 1;
+let sourceOptions = [];
+let rrrlfSchemeOptions = [];
 
 function today() {
   const d = new Date();
@@ -23,10 +28,7 @@ function today() {
 
 async function loadSession() {
   const response = await fetch("/api/auth/me", { headers: { Accept: "application/json" } });
-  if (!response.ok) {
-    window.location.href = "/admin";
-    return false;
-  }
+  if (!response.ok) { window.location.href = "/admin"; return false; }
   const data = await response.json();
   document.getElementById("staffName").textContent = data.username || "Staff";
   return true;
@@ -45,6 +47,26 @@ async function loadLocations() {
   });
 }
 
+async function loadSources() {
+  const response = await fetch("/api/sources");
+  if (!response.ok) return;
+  const data = await response.json();
+  sourceOptions = data.sources || [];
+  rrrlfSchemeOptions = data.rrrlf_schemes || [];
+  sourceSelect.innerHTML = '<option value="">Select receiving source</option>' + sourceOptions.map(x => `<option value="${x}">${x}</option>`).join("");
+  rrrlfSchemeSelect.innerHTML = '<option value="">Select RRRLF scheme</option>' + rrrlfSchemeOptions.map(x => `<option value="${x}">${x}</option>`).join("");
+  updateRRRLFVisibility();
+}
+
+function updateRRRLFVisibility() {
+  const isRRRLF = sourceSelect.value === "RRRLF";
+  rrrlfSchemeWrap.hidden = !isRRRLF;
+  rrrlfSchemeSelect.required = isRRRLF;
+  if (!isRRRLF) rrrlfSchemeSelect.value = "";
+}
+
+sourceSelect.addEventListener("change", updateRRRLFVisibility);
+
 async function loadNextAccession() {
   refreshAccessionButton.disabled = true;
   try {
@@ -55,9 +77,7 @@ async function loadNextAccession() {
   } catch (error) {
     message.className = "form-message error";
     message.textContent = error.message;
-  } finally {
-    refreshAccessionButton.disabled = false;
-  }
+  } finally { refreshAccessionButton.disabled = false; }
 }
 
 addAuthor.addEventListener("click", () => {
@@ -92,11 +112,7 @@ ddcInput.addEventListener("input", async () => {
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = `${row.ddc_number} — ${row.subject}`;
-      button.addEventListener("click", () => {
-        ddcInput.value = row.ddc_number;
-        subjectInput.value = row.subject;
-        ddcSuggestions.innerHTML = "";
-      });
+      button.addEventListener("click", () => { ddcInput.value = row.ddc_number; subjectInput.value = row.subject; ddcSuggestions.innerHTML = ""; });
       ddcSuggestions.appendChild(button);
     });
   } catch {}
@@ -119,36 +135,25 @@ form.addEventListener("submit", async event => {
   event.preventDefault();
   message.className = "form-message";
   message.textContent = "Saving…";
-
   const data = Object.fromEntries(new FormData(form).entries());
-  const authorNames = [data.author1, data.author2, data.author3]
-    .filter(Boolean).map(x => x.trim()).filter(Boolean).slice(0, 3);
-
+  const authorNames = [data.author1, data.author2, data.author3].filter(Boolean).map(x => x.trim()).filter(Boolean).slice(0, 3);
   const contributorRows = [];
   for (let i = 1; i <= contributorCount; i += 1) {
     const name = String(data[`contributor${i}`] || "").trim();
     const role = String(data[`contributor_role${i}`] || "").trim();
     if (name) contributorRows.push({ name, role: role || null });
   }
-
   const body = { ...data, authors: authorNames, contributors: contributorRows };
   for (let i = 1; i <= 3; i += 1) delete body[`author${i}`];
-  for (let i = 1; i <= contributorCount; i += 1) {
-    delete body[`contributor${i}`];
-    delete body[`contributor_role${i}`];
-  }
+  for (let i = 1; i <= contributorCount; i += 1) { delete body[`contributor${i}`]; delete body[`contributor_role${i}`]; }
   if (!body.accession_date) body.accession_date = today();
   if (!body.location_id) body.location_id = null;
+  if (body.source !== "RRRLF") body.rrrlf_scheme = null;
 
   try {
-    const response = await fetch("/api/accessions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(body)
-    });
+    const response = await fetch("/api/accessions", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not save accession.");
-
     message.className = "form-message success";
     message.textContent = `Accession ${result.accession_no} saved successfully.`;
     form.reset();
@@ -159,23 +164,20 @@ form.addEventListener("submit", async event => {
     addAuthor.hidden = false;
     contributorCount = 1;
     contributors.innerHTML = '<div class="contributor-row"><input name="contributor1" placeholder="Contributor name"><input name="contributor_role1" placeholder="Role (optional)"></div>';
+    sourceSelect.value = "";
+    updateRRRLFVisibility();
     await loadLocations();
     await loadNextAccession();
-  } catch (error) {
-    message.className = "form-message error";
-    message.textContent = error.message;
-  }
+  } catch (error) { message.className = "form-message error"; message.textContent = error.message; }
 });
 
-document.getElementById("logoutButton").addEventListener("click", async () => {
-  await fetch("/api/auth/logout", { method: "POST" });
-  window.location.href = "/";
-});
+document.getElementById("logoutButton").addEventListener("click", async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/"; });
 
 (async function init() {
   const authenticated = await loadSession();
   if (!authenticated) return;
   accessionDateInput.value = today();
+  await loadSources();
   await loadLocations();
   await loadNextAccession();
 })();
