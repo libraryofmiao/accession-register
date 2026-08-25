@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Staff Login — SDLM Miao</title>
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="login-mark">SDLM</div>
+    <h1>Staff Login</h1>
+    <p>Sub Divisional Library, Miao</p>
+    <form id="loginForm">
+      <label>Username<input id="username" autocomplete="username" required></label>
+      <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Sign in</button>
+      <div id="loginError" class="form-error" role="alert"></div>
+    </form>
+    <a href="/">← Return to Public OPAC</a>
+  </main>
+  <script src="/login.js"></script>
+</body>
+</html>
