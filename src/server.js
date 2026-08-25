@@ -16,17 +16,14 @@ const COOKIE_NAME = "sdlm_staff_session";
 const SESSION_MAX_AGE = 8 * 60 * 60;
 
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static(path.join(__dirname, "..", "public")));
 
 function sign(value) {
   return crypto.createHmac("sha256", SESSION_SECRET).update(value).digest("hex");
 }
-
 function makeSession(username) {
   const payload = Buffer.from(JSON.stringify({ u: username, exp: Math.floor(Date.now() / 1000) + SESSION_MAX_AGE })).toString("base64url");
   return `${payload}.${sign(payload)}`;
 }
-
 function readSession(req) {
   if (!SESSION_SECRET) return null;
   const header = req.headers.cookie || "";
@@ -45,11 +42,8 @@ function readSession(req) {
     return data;
   } catch { return null; }
 }
-
 function requireStaff(req, res, next) {
-  if (!ADMIN_USERNAME || !ADMIN_PASSWORD || !SESSION_SECRET) {
-    return res.status(503).json({ error: "Staff login is not configured. Add ADMIN_USERNAME, ADMIN_PASSWORD and SESSION_SECRET in Render environment variables." });
-  }
+  if (!ADMIN_USERNAME || !ADMIN_PASSWORD || !SESSION_SECRET) return res.status(503).json({ error: "Staff login is not configured. Add ADMIN_USERNAME, ADMIN_PASSWORD and SESSION_SECRET in Render environment variables." });
   const session = readSession(req);
   if (!session) return res.status(401).json({ error: "Staff authentication required." });
   req.staff = session;
@@ -70,12 +64,10 @@ app.post("/api/auth/login", (req, res) => {
   res.setHeader("Set-Cookie", `${COOKIE_NAME}=${encodeURIComponent(token)}; Max-Age=${SESSION_MAX_AGE}; Path=/; HttpOnly; SameSite=Lax; Secure`);
   res.json({ ok: true });
 });
-
 app.post("/api/auth/logout", (_req, res) => {
   res.setHeader("Set-Cookie", `${COOKIE_NAME}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure`);
   res.json({ ok: true });
 });
-
 app.get("/api/auth/me", (req, res) => {
   const session = readSession(req);
   if (!session) return res.status(401).json({ authenticated: false });
@@ -90,7 +82,6 @@ app.get("/api/ddc", async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
-
 app.get("/api/locations", async (_req, res) => {
   const { data, error } = await supabasePublic.from("location_master").select("id,location_code,location_name,shelf").order("location_name");
   if (error) return res.status(500).json({ error: error.message });
@@ -149,6 +140,7 @@ app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "..", "public
 app.get("/admin.html", (_req, res) => res.sendFile(path.join(__dirname, "..", "public", "login.html")));
 app.get("/admin-dashboard.html", requireStaff, (_req, res) => res.sendFile(path.join(__dirname, "..", "public", "admin.html")));
 
+app.use(express.static(path.join(__dirname, "..", "public")));
 app.get(/.*/, (_req, res) => res.sendFile(path.join(__dirname, "..", "public", "index.html")));
 
 app.listen(PORT, "0.0.0.0", () => console.log(`Accession Register V1 listening on port ${PORT}`));
