@@ -172,7 +172,7 @@ app.post("/api/accessions", async (req, res) => {
   res.status(201).json({ ...accession, authors, contributors });
 });
 
-app.get("*", (_req, res) => {
+app.get(/.*/, (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));
 });
 
