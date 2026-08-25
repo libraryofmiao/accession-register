@@ -7,8 +7,14 @@ const sourcePath = path.join(here, 'server.js');
 const runtimePath = path.join(here, '.server-runtime.mjs');
 const source = await fs.readFile(sourcePath, 'utf8');
 
-const importLine = 'import { createVerificationRouter } from "./routes/verification.js";';
-const mountLine = 'app.use("/api/admin/verification",requireStaff,createVerificationRouter(supabaseAdmin));';
+const imports = [
+  'import { createVerificationRouter } from "./routes/verification.js";',
+  'import { createEnhancementRouter } from "./routes/enhancements.js";'
+].join('\n');
+const mounts = [
+  'app.use("/api/admin/verification",requireStaff,createVerificationRouter(supabaseAdmin));',
+  'app.use("/api/admin/enhancements",requireStaff,createEnhancementRouter(supabaseAdmin));'
+].join('\n');
 
 if (source.includes('createVerificationRouter')) {
   throw new Error('server.js already contains verification route integration; launcher is not needed for this route.');
@@ -19,7 +25,7 @@ if (!source.includes(marker)) {
   throw new Error('Unable to find server startup marker in server.js. Refusing to start a transformed server.');
 }
 
-const transformed = `${importLine}\n${source.replace(marker, `${mountLine}\n${marker}`)}`;
+const transformed = `${imports}\n${source.replace(marker, `${mounts}\n${marker}`)}`;
 await fs.writeFile(runtimePath, transformed, 'utf8');
 
 try {
