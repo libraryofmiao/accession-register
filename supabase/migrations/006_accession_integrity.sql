@@ -1,36 +1,45 @@
--- Accession Register integrity rules.
--- Enforce the maximum of 3 authors at database level so the rule cannot be bypassed by direct API/database writes.
-create or replace function public.enforce_max_three_accession_authors()
+-- 006: DDC-number based Subject population.
+-- The ddc_master table stores the library's approved DDC -> Subject mappings.
+-- New/updated accession rows automatically use the exact DDC master subject.
+
+create or replace function public.lookup_ddc_subject(p_ddc text)
+returns text
+language sql
+stable
+as $$
+  select subject from public.ddc_master
+  where lower(trim(ddc_number)) = lower(trim(p_ddc))
+  limit 1;
+$$;
+
+create or replace function public.populate_accession_subject_from_ddc()
 returns trigger
 language plpgsql
 as $$
 declare
-  author_count integer;
+  mapped_subject text;
 begin
-  select count(*) into author_count
-  from public.accession_authors
-  where accession_id = new.accession_id
-    and id <> coalesce(new.id, -1);
-
-  if author_count >= 3 then
-    raise exception 'An accession may have a maximum of 3 authors.' using errcode = 'check_violation';
+  if nullif(trim(new.ddc_number), '') is not null then
+    mapped_subject := public.lookup_ddc_subject(new.ddc_number);
+    if mapped_subject is not null and trim(mapped_subject) <> '' then
+      new.subject := mapped_subject;
+    end if;
   end if;
-
-  if new.author_order is null or new.author_order not between 1 and 3 then
-    raise exception 'Author order must be between 1 and 3.' using errcode = 'check_violation';
-  end if;
-
   return new;
 end;
 $$;
 
-drop trigger if exists trg_accession_authors_max_three on public.accession_authors;
-create trigger trg_accession_authors_max_three
-before insert or update on public.accession_authors
-for each row execute function public.enforce_max_three_accession_authors();
+drop trigger if exists trg_accessions_ddc_subject on public.accessions;
+create trigger trg_accessions_ddc_subject
+before insert or update of ddc_number on public.accessions
+for each row execute function public.populate_accession_subject_from_ddc();
 
-create unique index if not exists uq_accessions_accession_no
-on public.accessions(accession_no);
+create index if not exists idx_ddc_master_number on public.ddc_master(ddc_number);
 
-create unique index if not exists uq_accession_authors_accession_order
-on public.accession_authors(accession_id, author_order);
+-- Backfill existing accession records wherever an exact DDC master match exists.
+update public.accessions a
+set subject = d.subject
+from public.ddc_master d
+where lower(trim(a.ddc_number)) = lower(trim(d.ddc_number))
+  and d.subject is not null
+  and trim(d.subject) <> '';
