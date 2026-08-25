@@ -2,9 +2,11 @@ const els = {
   total: document.getElementById('total'), available: document.getElementById('available'), issued: document.getElementById('issued'),
   missing: document.getElementById('missing'), damaged: document.getElementById('damaged'), withdrawn: document.getElementById('withdrawn'),
   source: document.getElementById('source'), scheme: document.getElementById('scheme'), status: document.getElementById('status'), search: document.getElementById('search'),
-  rows: document.getElementById('rows'), message: document.getElementById('message'), scope: document.getElementById('scope')
+  rows: document.getElementById('rows'), message: document.getElementById('message'), scope: document.getElementById('scope'), page: document.getElementById('page'), prev: document.getElementById('prev'), next: document.getElementById('next')
 };
-let allRows = [];
+let currentPage = 1;
+const pageSize = 100;
+let totalPages = 1;
 
 async function loadSession() {
   const r = await fetch('/api/auth/me', {headers:{Accept:'application/json'}});
@@ -13,74 +15,52 @@ async function loadSession() {
   document.getElementById('staffName').textContent = d.username || 'Staff';
   return true;
 }
-
 function text(v){ return v == null ? '' : String(v); }
 function locationText(row){
   const l = row.location_master;
   if (!l) return '';
   return [l.location_name, l.location_code, l.shelf ? `Shelf ${l.shelf}` : ''].filter(Boolean).join(' — ');
 }
-function escapeHtml(v){
-  return text(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+function escapeHtml(v){ return text(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function statusKey(v){ return text(v).trim().toLowerCase(); }
-
-function populateFilters(){
-  const sources = [...new Set(allRows.map(r=>r.source).filter(Boolean))].sort();
-  const schemes = [...new Set(allRows.map(r=>r.rrrlf_scheme).filter(Boolean))].sort();
-  const statuses = [...new Set(allRows.map(r=>r.status || 'Available').filter(Boolean))].sort();
-  els.source.innerHTML = '<option value="">All sources</option>' + sources.map(v=>`<option>${escapeHtml(v)}</option>`).join('');
-  els.scheme.innerHTML = '<option value="">All RRRLF schemes</option>' + schemes.map(v=>`<option>${escapeHtml(v)}</option>`).join('');
-  els.status.innerHTML = '<option value="">All statuses</option>' + statuses.map(v=>`<option>${escapeHtml(v)}</option>`).join('');
+function optionValues(list, label){
+  return `<option value="">${label}</option>` + (list || []).map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
 }
-
-function calculate(rows){
-  const counts = {total:rows.length, available:0, issued:0, missing:0, damaged:0, withdrawn:0};
-  rows.forEach(r=>{
-    const s=statusKey(r.status || 'Available');
-    if (s === 'available') counts.available++;
-    else if (s === 'issued') counts.issued++;
-    else if (s === 'lost' || s === 'missing') counts.missing++;
-    else if (s === 'damaged') counts.damaged++;
-    else if (s === 'withdrawn') counts.withdrawn++;
-  });
-  Object.entries(counts).forEach(([k,v])=>els[k].textContent=v.toLocaleString('en-IN'));
+function renderSummary(s){
+  const counts = s || {};
+  ['total','available','issued','missing','damaged','withdrawn'].forEach(k=>els[k].textContent=(counts[k]||0).toLocaleString('en-IN'));
 }
-
-function render(){
-  const q = text(els.search.value).trim().toLowerCase();
-  const source = els.source.value, scheme = els.scheme.value, status = els.status.value;
-  const filtered = allRows.filter(r=>{
-    if(source && r.source !== source) return false;
-    if(scheme && r.rrrlf_scheme !== scheme) return false;
-    if(status && (r.status || 'Available') !== status) return false;
-    if(q){
-      const hay = [r.accession_no,r.title,r.isbn,r.ddc_number,r.subject,r.source,r.rrrlf_scheme,locationText(r)].join(' ').toLowerCase();
-      if(!hay.includes(q)) return false;
-    }
-    return true;
-  });
-  calculate(filtered);
-  els.scope.textContent = `Showing ${filtered.length.toLocaleString('en-IN')} of ${allRows.length.toLocaleString('en-IN')} accession records.`;
-  els.rows.innerHTML = filtered.map(r=>`<tr><td>${escapeHtml(r.accession_no)}</td><td>${escapeHtml(r.title)}</td><td>${escapeHtml(r.source)}</td><td>${escapeHtml(r.rrrlf_scheme)}</td><td>${escapeHtml(r.status || 'Available')}</td><td>${escapeHtml(locationText(r))}</td></tr>`).join('');
-  if(!filtered.length) els.rows.innerHTML='<tr><td colspan="6">No matching records found.</td></tr>';
+function renderRows(rows){
+  els.rows.innerHTML = (rows || []).map(r=>`<tr><td>${escapeHtml(r.accession_no)}</td><td>${escapeHtml(r.title)}</td><td>${escapeHtml(r.source)}</td><td>${escapeHtml(r.rrrlf_scheme)}</td><td>${escapeHtml(r.status || 'Available')}</td><td>${escapeHtml(locationText(r))}</td></tr>`).join('');
+  if(!rows || !rows.length) els.rows.innerHTML='<tr><td colspan="6">No matching records found.</td></tr>';
 }
-
-async function load(){
+async function load(resetPage=false){
+  if(resetPage) currentPage=1;
   els.message.textContent='Loading stock…';
-  els.message.className='stock-note';
   try{
-    const r=await fetch('/api/admin/register',{headers:{Accept:'application/json'}});
+    const p = new URLSearchParams({page:String(currentPage),page_size:String(pageSize)});
+    if(els.search.value.trim()) p.set('search', els.search.value.trim());
+    if(els.source.value) p.set('source', els.source.value);
+    if(els.scheme.value) p.set('rrrlf_scheme', els.scheme.value);
+    if(els.status.value) p.set('status', els.status.value);
+    const r=await fetch('/api/admin/stock?'+p.toString(),{headers:{Accept:'application/json'}});
     const d=await r.json();
     if(!r.ok) throw new Error(d.error || 'Could not load stock.');
-    allRows=Array.isArray(d)?d:[];
-    populateFilters();
-    render();
+    renderSummary(d.summary);
+    renderRows(d.rows);
+    totalPages=Math.max(1, Number(d.pagination?.total_pages || 1));
+    els.page.textContent=`Page ${currentPage.toLocaleString('en-IN')} of ${totalPages.toLocaleString('en-IN')}`;
+    els.prev.disabled=currentPage<=1;
+    els.next.disabled=currentPage>=totalPages;
+    els.scope.textContent=`Showing ${Number(d.pagination?.from || 0).toLocaleString('en-IN')}–${Number(d.pagination?.to || 0).toLocaleString('en-IN')} of ${Number(d.pagination?.total || 0).toLocaleString('en-IN')} matching accession records.`;
     els.message.textContent='Stock refreshed successfully.';
   }catch(e){ els.message.textContent=e.message; els.message.className='stock-note error'; }
 }
-
-['search','source','scheme','status'].forEach(id=>document.getElementById(id).addEventListener(id==='search'?'input':'change',render));
-document.getElementById('refresh').addEventListener('click',load);
+['source','scheme','status'].forEach(id=>document.getElementById(id).addEventListener('change',()=>load(true)));
+let searchTimer;
+els.search.addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>load(true),300);});
+els.prev.addEventListener('click',()=>{if(currentPage>1){currentPage--;load();}});
+els.next.addEventListener('click',()=>{if(currentPage<totalPages){currentPage++;load();}});
+document.getElementById('refresh').addEventListener('click',()=>load());
 document.getElementById('logoutButton').addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'});window.location.href='/';});
-(async()=>{if(await loadSession()) await load();})();
+(async()=>{if(await loadSession()) await load(true);})();
