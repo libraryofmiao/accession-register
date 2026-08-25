@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Current Stock — SDLM Miao</title>
+  <link rel="stylesheet" href="/admin.css">
+  <style>
+    .stock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:18px 0}.stock-card{padding:18px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.stock-card strong{display:block;font-size:28px;margin-top:5px}.stock-card span{color:#667085;font-size:13px}.stock-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:18px 0}.stock-toolbar label{min-width:180px;flex:1}.stock-toolbar button{height:42px}.stock-table{width:100%;border-collapse:collapse;background:#fff}.stock-table th,.stock-table td{padding:9px;border-bottom:1px solid #e6eaf0;text-align:left;font-size:13px}.stock-table th{background:#f6f8fb;position:sticky;top:0}.table-wrap{overflow:auto;max-height:65vh;border:1px solid #e1e6ee;border-radius:10px}.stock-note{font-size:13px;color:#667085}.error{color:#b42318}.back{display:inline-block;margin-bottom:12px}
+  </style>
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <div><strong>SDLM Miao</strong><span> Current Stock</span></div>
+    <div style="display:flex;gap:10px;align-items:center"><span id="staffName" class="staff-name"></span><button id="logoutButton" class="secondary" type="button">Logout</button></div>
+  </header>
+  <main class="admin-shell">
+    <section class="panel">
+      <a class="back" href="/admin-dashboard.html">← Back to Dashboard</a>
+      <div class="dashboard-bar"><div><h1>Current Stock</h1><p>Live stock position calculated from accession records.</p></div><button id="refresh" class="primary" type="button">Refresh</button></div>
+      <div id="message" class="stock-note">Loading stock…</div>
+      <div class="stock-grid">
+        <div class="stock-card"><span>Total Accessioned</span><strong id="total">0</strong></div>
+        <div class="stock-card"><span>Available</span><strong id="available">0</strong></div>
+        <div class="stock-card"><span>Issued</span><strong id="issued">0</strong></div>
+        <div class="stock-card"><span>Missing / Lost</span><strong id="missing">0</strong></div>
+        <div class="stock-card"><span>Damaged</span><strong id="damaged">0</strong></div>
+        <div class="stock-card"><span>Withdrawn</span><strong id="withdrawn">0</strong></div>
+      </div>
+      <div class="stock-toolbar">
+        <label>Search<input id="search" placeholder="Accession, title, DDC, subject"></label>
+        <label>Source<select id="source"><option value="">All sources</option></select></label>
+        <label>RRRLF Scheme<select id="scheme"><option value="">All RRRLF schemes</option></select></label>
+        <label>Status<select id="status"><option value="">All statuses</option></select></label>
+      </div>
+      <p id="scope" class="stock-note"></p>
+      <div class="table-wrap"><table class="stock-table"><thead><tr><th>Accession</th><th>Title</th><th>Source</th><th>RRRLF Scheme</th><th>Status</th><th>Location</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+  </main>
+  <script src="/stock.js"></script>
+</body>
+</html>
