@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Accession Register — SDLM Miao</title><link rel="stylesheet" href="/register.css">
+</head>
+<body>
+<header class="header"><div><h1>Accession Register</h1><p>Sub Divisional Library, Miao</p></div><nav><a href="/admin-dashboard.html">Dashboard</a><a href="/manage">Manage</a><a href="/masters">Masters</a><a href="/">Public OPAC</a><button id="logout">Logout</button></nav></header>
+<main>
+<section class="panel controls"><h2>Register Report</h2><div class="filters">
+<label>Search<input id="search" placeholder="Accession no., title, ISBN, DDC, subject, author"></label>
+<label>Status<select id="status"><option value="">All statuses</option><option>Available</option><option>Issued</option><option>Lost</option><option>Withdrawn</option><option>Damaged</option></select></label>
+<label>Location<select id="location"><option value="">All locations</option></select></label>
+<label>From date<input id="from" type="date"></label><label>To date<input id="to" type="date"></label>
+</div><div class="actions"><button id="refresh">Load Register</button><button id="print">Print Register</button><button id="clear">Clear Filters</button></div><div id="message"></div></section>
+<section class="panel"><div class="summary"><strong id="count">0 records</strong><span>Print the filtered register using your browser's print dialog.</span></div><div class="table-wrap"><table><thead><tr><th>Sl.</th><th>Accession No.</th><th>Date</th><th>Title</th><th>Author(s)</th><th>Publisher</th><th>Year</th><th>ISBN</th><th>DDC</th><th>Subject</th><th>Location</th><th>Price</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div></section>
+</main><script src="/register.js"></script>
+</body></html>
