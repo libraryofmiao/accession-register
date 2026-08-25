@@ -3,82 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Staff Administration — SDLM Miao</title>
+  <title>Staff Dashboard — SDLM Miao</title>
   <link rel="stylesheet" href="/admin.css">
+  <style>
+    .dashboard-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}.dash-card{display:block;padding:18px;border:1px solid #d8dee8;border-radius:12px;background:#fff;text-decoration:none;color:inherit;box-shadow:0 2px 8px rgba(0,0,0,.04)}.dash-card:hover{border-color:#8aa4c8;transform:translateY(-1px)}.dash-icon{font-size:25px}.dash-card strong{display:block;margin:7px 0 4px}.dash-card span{font-size:13px;color:#667085}.section-title{margin-top:20px}.dashboard-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.opac-link{font-size:14px}
+  </style>
 </head>
 <body class="admin-page">
   <header class="admin-header">
-    <div><strong>SDLM Miao</strong><span> Staff Administration</span></div>
-    <button id="logoutButton" class="secondary" type="button">Logout</button>
+    <div><strong>SDLM Miao</strong><span> Staff Dashboard</span></div>
+    <div style="display:flex;gap:10px;align-items:center"><span id="staffName" class="staff-name"></span><button id="logoutButton" class="secondary" type="button">Logout</button></div>
   </header>
-
   <main class="admin-shell">
     <section class="panel">
-      <div class="panel-heading">
-        <div><h1>New Accession</h1><p>Enter a new library accession record.</p></div>
-        <span id="staffName" class="staff-name"></span>
+      <div class="dashboard-bar"><div><h1>Library Administration</h1><p>Accession Register &amp; OPAC management</p></div><a class="opac-link" href="/" target="_blank" rel="noopener">Open Public OPAC ↗</a></div>
+      <div class="dashboard-nav">
+        <a class="dash-card" href="#new-accession"><div class="dash-icon">➕</div><strong>New Accession</strong><span>Add a new library accession record.</span></a>
+        <a class="dash-card" href="/register.html"><div class="dash-icon">📋</div><strong>Accession Register</strong><span>Search, filter and print the register.</span></a>
+        <a class="dash-card" href="/manage"><div class="dash-icon">✏️</div><strong>Manage Accession</strong><span>Edit or remove existing records.</span></a>
+        <a class="dash-card" href="/masters"><div class="dash-icon">🗂️</div><strong>DDC &amp; Location Masters</strong><span>Manage classification and library locations.</span></a>
       </div>
 
-      <form id="accessionForm" class="accession-form">
-        <div class="section-title">Basic information</div>
-        <div class="grid two">
-          <label>Accession No.*
-            <div class="input-with-button">
-              <input id="accessionNo" name="accession_no" required readonly>
-              <button type="button" id="refreshAccession" class="small-button">Next</button>
-            </div>
-          </label>
-          <label>Accession Date<input name="accession_date" id="accessionDate" type="date"></label>
-        </div>
-        <label>Title*<input name="title" required></label>
-        <label>Subtitle<input name="subtitle"></label>
-
-        <div class="section-title">Authors — maximum 3</div>
-        <div id="authors" class="author-list">
-          <label>Main Author<input name="author1"></label>
-        </div>
-        <button type="button" id="addAuthor" class="small-button">+ Add Author</button>
-
-        <div class="section-title">Contributors</div>
-        <div id="contributors" class="contributor-list">
-          <div class="contributor-row">
-            <input name="contributor1" placeholder="Contributor name">
-            <input name="contributor_role1" placeholder="Role (optional)">
-          </div>
-        </div>
-        <button type="button" id="addContributor" class="small-button">+ Add Contributor</button>
-
-        <div class="section-title">Publication details</div>
-        <div class="grid two">
-          <label>Edition<input name="edition"></label>
-          <label>Publisher<input name="publisher"></label>
-          <label>Publication Place<input name="publication_place"></label>
-          <label>Publication Year<input name="publication_year" type="number" min="0" max="9999"></label>
-          <label>ISBN<input name="isbn"></label>
-          <label>Pages<input name="pages"></label>
-          <label>Price<input name="price" type="number" min="0" step="0.01"></label>
-          <label>Language<input name="language"></label>
-          <label>Book Type<input name="book_type"></label>
-          <label>Status<select name="status"><option>Available</option><option>Issued</option><option>Lost</option><option>Withdrawn</option><option>Damaged</option></select></label>
-        </div>
-
-        <div class="section-title">Classification & location</div>
-        <div class="grid two">
-          <label>DDC Number
-            <input id="ddcNumber" name="ddc_number" autocomplete="off">
-            <div id="ddcSuggestions" class="suggestions"></div>
-          </label>
-          <label>Subject<input id="subject" name="subject"></label>
-          <label>Location<select id="location" name="location_id"><option value="">Select location</option></select></label>
-        </div>
-
-        <label>Remarks<textarea name="remarks" rows="3"></textarea></label>
-        <div id="formMessage" class="form-message"></div>
-        <button class="primary" type="submit">Save Accession</button>
-      </form>
+      <div id="new-accession">
+        <div class="panel-heading"><div><h2>New Accession</h2><p>Enter a new library accession record.</p></div></div>
+        <form id="accessionForm" class="accession-form">
+          <div class="section-title">Basic information</div>
+          <div class="grid two"><label>Accession No.*<div class="input-with-button"><input id="accessionNo" name="accession_no" required readonly><button type="button" id="refreshAccession" class="small-button">Next</button></div></label><label>Accession Date<input name="accession_date" id="accessionDate" type="date"></label></div>
+          <label>Title*<input name="title" required></label><label>Subtitle<input name="subtitle"></label>
+          <div class="section-title">Authors — maximum 3</div><div id="authors" class="author-list"><label>Main Author<input name="author1"></label></div><button type="button" id="addAuthor" class="small-button">+ Add Author</button>
+          <div class="section-title">Contributors</div><div id="contributors" class="contributor-list"><div class="contributor-row"><input name="contributor1" placeholder="Contributor name"><input name="contributor_role1" placeholder="Role (optional)"></div></div><button type="button" id="addContributor" class="small-button">+ Add Contributor</button>
+          <div class="section-title">Publication details</div><div class="grid two"><label>Edition<input name="edition"></label><label>Publisher<input name="publisher"></label><label>Publication Place<input name="publication_place"></label><label>Publication Year<input name="publication_year" type="number" min="0" max="9999"></label><label>ISBN<input name="isbn"></label><label>Pages<input name="pages"></label><label>Price<input name="price" type="number" min="0" step="0.01"></label><label>Language<input name="language"></label><label>Book Type<input name="book_type"></label><label>Status<select name="status"><option>Available</option><option>Issued</option><option>Lost</option><option>Withdrawn</option><option>Damaged</option></select></label></div>
+          <div class="section-title">Classification &amp; location</div><div class="grid two"><label>DDC Number<input id="ddcNumber" name="ddc_number" autocomplete="off"><div id="ddcSuggestions" class="suggestions"></div></label><label>Subject<input id="subject" name="subject"></label><label>Location<select id="location" name="location_id"><option value="">Select location</option></select></label></div>
+          <label>Remarks<textarea name="remarks" rows="3"></textarea></label><div id="formMessage" class="form-message"></div><button class="primary" type="submit">Save Accession</button>
+        </form>
+      </div>
     </section>
   </main>
-
   <script src="/admin.js"></script>
 </body>
 </html>
