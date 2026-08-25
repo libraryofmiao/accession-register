@@ -20,10 +20,15 @@ app.use(express.json({ limit: "1mb" }));
 function sign(value) {
   return crypto.createHmac("sha256", SESSION_SECRET).update(value).digest("hex");
 }
+
 function makeSession(username) {
-  const payload = Buffer.from(JSON.stringify({ u: username, exp: Math.floor(Date.now() / 1000) + SESSION_MAX_AGE })).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({
+    u: username,
+    exp: Math.floor(Date.now() / 1000) + SESSION_MAX_AGE
+  })).toString("base64url");
   return `${payload}.${sign(payload)}`;
 }
+
 function readSession(req) {
   if (!SESSION_SECRET) return null;
   const header = req.headers.cookie || "";
@@ -40,10 +45,15 @@ function readSession(req) {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (!data.u || !data.exp || data.exp < Math.floor(Date.now() / 1000)) return null;
     return data;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
+
 function requireStaff(req, res, next) {
-  if (!ADMIN_USERNAME || !ADMIN_PASSWORD || !SESSION_SECRET) return res.status(503).json({ error: "Staff login is not configured. Add ADMIN_USERNAME, ADMIN_PASSWORD and SESSION_SECRET in Render environment variables." });
+  if (!ADMIN_USERNAME || !ADMIN_PASSWORD || !SESSION_SECRET) {
+    return res.status(503).json({ error: "Staff login is not configured. Add ADMIN_USERNAME, ADMIN_PASSWORD and SESSION_SECRET in Render environment variables." });
+  }
   const session = readSession(req);
   if (!session) return res.status(401).json({ error: "Staff authentication required." });
   req.staff = session;
@@ -64,10 +74,12 @@ app.post("/api/auth/login", (req, res) => {
   res.setHeader("Set-Cookie", `${COOKIE_NAME}=${encodeURIComponent(token)}; Max-Age=${SESSION_MAX_AGE}; Path=/; HttpOnly; SameSite=Lax; Secure`);
   res.json({ ok: true });
 });
+
 app.post("/api/auth/logout", (_req, res) => {
   res.setHeader("Set-Cookie", `${COOKIE_NAME}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure`);
   res.json({ ok: true });
 });
+
 app.get("/api/auth/me", (req, res) => {
   const session = readSession(req);
   if (!session) return res.status(401).json({ authenticated: false });
@@ -82,6 +94,7 @@ app.get("/api/ddc", async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
+
 app.get("/api/locations", async (_req, res) => {
   const { data, error } = await supabasePublic.from("location_master").select("id,location_code,location_name,shelf").order("location_name");
   if (error) return res.status(500).json({ error: error.message });
@@ -115,6 +128,19 @@ app.get("/api/admin/accessions", requireStaff, async (_req, res) => {
   const { data, error } = await supabaseAdmin.from("accessions").select(`*, location_master(location_code,location_name,shelf), accession_authors(author_order,author_name), accession_contributors(contributor_name,contributor_role)`).order("accession_no").limit(200);
   if (error) return res.status(500).json({ error: error.message });
   res.json(data || []);
+});
+
+// Generate the next numeric accession number from existing records.
+// Existing non-numeric accession numbers are ignored.
+app.get("/api/admin/next-accession", requireStaff, async (_req, res) => {
+  const { data, error } = await supabaseAdmin.from("accessions").select("accession_no").limit(5000);
+  if (error) return res.status(500).json({ error: error.message });
+  let max = 0;
+  for (const row of data || []) {
+    const value = String(row.accession_no || "").trim();
+    if (/^\d+$/.test(value)) max = Math.max(max, Number(value));
+  }
+  res.json({ accession_no: String(max + 1) });
 });
 
 app.post("/api/accessions", requireStaff, async (req, res) => {
