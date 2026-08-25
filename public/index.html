@@ -3,34 +3,115 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SDLM Miao — Accession Register & OPAC</title>
+  <title>SDLM Miao — Public OPAC</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
+
 <body>
-<header>
-  <div>
-    <h1>Sub Divisional Library, Miao</h1>
-    <p>Accession Register & OPAC — Version 1</p>
+
+<header class="site-header">
+  <div class="header-inner">
+
+    <div class="brand">
+      <div class="brand-mark">SDLM</div>
+
+      <div>
+        <h1>Sub Divisional Library, Miao</h1>
+        <p>Public Online Public Access Catalogue</p>
+      </div>
+    </div>
+
+    <div id="status" class="status">
+      Checking database…
+    </div>
+
   </div>
-  <span id="status" class="status">Checking database…</span>
 </header>
 
 <main>
+
   <section class="hero">
-    <h2>Online Public Access Catalogue</h2>
-    <p>Search books by title, ISBN, DDC number, or subject.</p>
-    <form id="searchForm">
-      <input id="search" autocomplete="off" placeholder="Search catalogue…" required>
-      <button>Search</button>
+
+    <div class="eyebrow">PUBLIC OPAC · VERSION 1</div>
+
+    <h2>Search the Library Catalogue</h2>
+
+    <p class="hero-description">
+      Search books by title, author, subject, ISBN, DDC number
+      or accession number.
+    </p>
+
+    <form id="searchForm" class="search-form" role="search">
+
+      <input
+        id="search"
+        type="search"
+        autocomplete="off"
+        aria-label="Search library catalogue"
+        placeholder="Enter title, author, subject, ISBN, DDC or accession number…"
+        required
+      >
+
+      <button type="submit">Search</button>
+
     </form>
+
+    <div class="search-hints">
+      <span>Title</span>
+      <span>Author</span>
+      <span>Subject</span>
+      <span>ISBN</span>
+      <span>DDC</span>
+      <span>Accession No.</span>
+    </div>
+
   </section>
 
-  <section>
-    <div id="results"></div>
+  <section class="results-section">
+
+    <div class="results-header">
+
+      <div>
+        <h2>Catalogue Results</h2>
+
+        <p id="resultMessage">
+          Enter a search term above to begin.
+        </p>
+      </div>
+
+      <div id="resultCount" class="result-count"></div>
+
+    </div>
+
+    <div id="results">
+
+      <div class="welcome">
+
+        <div class="welcome-icon">⌕</div>
+
+        <h3>Search the Library Catalogue</h3>
+
+        <p>
+          Enter a title, author, subject, ISBN, DDC number
+          or accession number above.
+        </p>
+
+      </div>
+
+    </div>
+
   </section>
+
 </main>
 
-<footer>SDLM Miao · Accession Register Project</footer>
+<footer>
+  <div>Sub Divisional Library, Miao</div>
+  <div class="footer-sub">
+    Public OPAC · Accession Register
+  </div>
+</footer>
+
 <script src="/app.js"></script>
+
 </body>
 </html>
