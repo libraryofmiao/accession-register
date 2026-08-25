@@ -2,7 +2,24 @@ const $=id=>document.getElementById(id);
 async function ensure(){const r=await fetch('/api/auth/me');if(!r.ok){location.href='/admin';return false}return true}
 function esc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
 function msg(el,text,ok=false){el.className=ok?'ok':'error';el.textContent=text}
-async function loadDdc(){const q=encodeURIComponent($('ddcSearch').value.trim());const r=await fetch('/api/admin/ddc?q='+q);if(!r.ok)return;const rows=await r.json();$('ddcCount').textContent=rows.length>=500?'500+':String(rows.length);$('ddcRows').innerHTML=rows.map(x=>`<div class="row"><div><b>${esc(x.ddc_number)}</b><span>${esc(x.subject)}</span></div><div><button data-edit-ddc="${x.id}">Edit</button><button class="danger" data-del-ddc="${x.id}">Delete</button></div></div>`).join('')||'<p>No DDC records.</p>'}
+async function loadDdc(){
+  const search=$('ddcSearch').value.trim();
+  let rows=[];
+  if(search){
+    const r=await fetch('/api/admin/ddc?q='+encodeURIComponent(search));
+    if(!r.ok)return;
+    rows=await r.json();
+  }else{
+    // The API currently returns up to 500 rows. Load all 000-999 records
+    // in parallel by digit prefix and merge/deduplicate them for the master.
+    const responses=await Promise.all(Array.from({length:10},(_,i)=>fetch('/api/admin/ddc?q='+i).then(r=>r.ok?r.json():[]).catch(()=>[])));
+    const byId=new Map();
+    for(const list of responses)for(const row of list)byId.set(String(row.id),row);
+    rows=[...byId.values()].sort((a,b)=>String(a.ddc_number).localeCompare(String(b.ddc_number),undefined,{numeric:true}));
+  }
+  $('ddcCount').textContent=String(rows.length);
+  $('ddcRows').innerHTML=rows.map(x=>`<div class="row"><div><b>${esc(x.ddc_number)}</b><span>${esc(x.subject)}</span></div><div><button data-edit-ddc="${x.id}">Edit</button><button class="danger" data-del-ddc="${x.id}">Delete</button></div></div>`).join('')||'<p>No DDC records.</p>'
+}
 async function loadLoc(){const q=encodeURIComponent($('locSearch').value.trim());const r=await fetch('/api/admin/enhancements/locations/tree');if(!r.ok)return;const tree=await r.json();const needle=$('locSearch').value.trim().toLowerCase();let html='';for(const s of tree){const racks=s.racks.filter(r=>!needle||`${s.name} ${r.name} ${r.shelves.map(x=>x.shelf).join(' ')}`.toLowerCase().includes(needle));if(!racks.length)continue;html+=`<div class="tree-section"><b>📁 ${esc(s.name)}</b>${racks.map(r=>`<div class="tree-rack"><b>🗄 ${esc(r.name)}</b><div>${r.shelves.map(x=>`<span class="shelf">${esc(x.shelf||x.location_code)} <button data-edit-loc="${x.id}">Edit</button> <button class="danger" data-del-loc="${x.id}">×</button></span>`).join('')}</div></div>`).join('')}</div>`}$('locRows').innerHTML=html||'<p>No locations.</p>'}
 $('ddcForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('ddcId').value,body={ddc_number:$('ddcNumber').value.trim(),subject:$('ddcSubject').value.trim()};const r=await fetch(id?'/api/admin/ddc/'+id:'/api/admin/ddc',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok)return msg($('ddcMessage'),d.error||'Save failed');msg($('ddcMessage'),'DDC saved.',true);e.target.reset();$('ddcId').value='';$('ddcCancel').hidden=true;loadDdc()});
 $('locForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('locId').value,body={section_name:$('locSection').value.trim(),rack_name:$('locRack').value.trim(),shelf:$('locShelf').value.trim(),location_code:$('locCode').value.trim()};const r=await fetch(id?'/api/admin/enhancements/locations/'+id:'/api/admin/enhancements/locations',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok)return msg($('locMessage'),d.error||'Save failed');msg($('locMessage'),'Shelf saved.',true);e.target.reset();$('locId').value='';$('locCancel').hidden=true;loadLoc()});
