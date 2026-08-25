@@ -37,10 +37,21 @@ create table if not exists public.accessions (
   language text,
   book_type text,
   remarks text,
+  source text check (source is null or source in ('State Central Library','RRRLF','Donation/Gift')),
+  rrrlf_scheme text,
   status text not null default 'Available'
     check (status in ('Available','Issued','Lost','Withdrawn','Damaged')),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint accessions_rrrlf_scheme_check check (
+    (source = 'RRRLF' and rrrlf_scheme in (
+      'Donated/Gifted by RRRLF',
+      'Purchased with Assistance from RRRLF',
+      'Matching Scheme'
+    ))
+    or
+    (source is distinct from 'RRRLF' and rrrlf_scheme is null)
+  )
 );
 
 create table if not exists public.accession_authors (
@@ -62,6 +73,8 @@ create table if not exists public.accession_contributors (
 create index if not exists idx_accessions_title on public.accessions using gin (to_tsvector('simple', title));
 create index if not exists idx_accessions_isbn on public.accessions(isbn);
 create index if not exists idx_accessions_ddc on public.accessions(ddc_number);
+create index if not exists idx_accessions_source on public.accessions(source);
+create index if not exists idx_accessions_rrrlf_scheme on public.accessions(rrrlf_scheme);
 create index if not exists idx_authors_name on public.accession_authors(author_name);
 
 -- Public OPAC reads.
@@ -92,5 +105,4 @@ create policy "OPAC can read locations"
 on public.location_master for select to anon, authenticated using (true);
 
 -- The server secret key is never placed in the browser.
--- Server-side writes can use the secret key after authentication/authorization
--- is implemented in later versions.
+-- Server-side writes can use the secret key after authentication/authorization.
