@@ -1,0 +1,1 @@
+Backend routes are being modularized incrementally. Current Stock is implemented in stock.js and is mounted from server.js.
