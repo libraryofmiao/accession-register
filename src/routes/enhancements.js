@@ -16,21 +16,23 @@ export function createEnhancementRouter(supabaseAdmin){
   router.post("/locations",async(req,res)=>{const b=req.body||{},section=esc(b.section_name),rack=esc(b.rack_name),shelf=esc(b.shelf),code=esc(b.location_code)||[section,rack,shelf].filter(Boolean).join("/");if(!section||!rack||!shelf)return res.status(400).json({error:"Section, rack and shelf are required."});const {data,error}=await supabaseAdmin.from("location_master").insert({location_code:code,location_name:section,section_name:section,rack_name:rack,shelf}).select().single();if(error)return res.status(400).json({error:error.message});res.status(201).json(data);});
   router.put("/locations/:id",async(req,res)=>{const b=req.body||{},section=esc(b.section_name),rack=esc(b.rack_name),shelf=esc(b.shelf),code=esc(b.location_code)||[section,rack,shelf].filter(Boolean).join("/");if(!section||!rack||!shelf)return res.status(400).json({error:"Section, rack and shelf are required."});const {data,error}=await supabaseAdmin.from("location_master").update({location_code:code,location_name:section,section_name:section,rack_name:rack,shelf}).eq("id",req.params.id).select().single();if(error)return res.status(400).json({error:error.message});res.json(data);});
 
+  // DDC master contains the 1,000 core fields: id, ddc_number and subject.
+  // Do not request optional division/section columns here because older
+  // installations do not contain those columns; one missing column would
+  // make the entire query fail and leave Subject blank in New Accession.
   router.get("/ddc/all",async(_req,res)=>{
-    const {data,error}=await supabaseAdmin.from("ddc_master").select("id,ddc_number,subject,division_number,section_number,created_at").order("ddc_number").range(0,999);
+    const {data,error}=await supabaseAdmin.from("ddc_master").select("id,ddc_number,subject,created_at").order("ddc_number").range(0,999);
     if(error)return res.status(500).json({error:error.message});
-    res.json(data||[]);
+    res.json((data||[]).map(x=>({...x,ddc_number:normalizeDdc(x.ddc_number)})));
   });
 
-  // Always search the complete DDC master in memory. This works whether
-  // ddc_number is stored as text or numeric in Supabase.
   router.get("/ddc/lookup",async(req,res)=>{
     const q=esc(req.query.q);
     if(!q)return res.json([]);
-    const {data,error}=await supabaseAdmin.from("ddc_master").select("id,ddc_number,subject,division_number,section_number").order("ddc_number").range(0,999);
+    const {data,error}=await supabaseAdmin.from("ddc_master").select("id,ddc_number,subject,created_at").order("ddc_number").range(0,999);
     if(error)return res.status(500).json({error:error.message});
     const nq=normalizeDdc(q), lower=q.toLowerCase();
-    const rows=(data||[]).map(x=>({...x,ddc_number:String(x.ddc_number??"").trim().padStart(3,"0")}));
+    const rows=(data||[]).map(x=>({...x,ddc_number:normalizeDdc(x.ddc_number)}));
     const exact=rows.filter(x=>normalizeDdc(x.ddc_number)===nq);
     const matches=rows.filter(x=>x.ddc_number.includes(q)||String(x.subject||"").toLowerCase().includes(lower));
     const out=[...exact,...matches.filter(x=>!exact.some(e=>String(e.id)===String(x.id)))].slice(0,20);
